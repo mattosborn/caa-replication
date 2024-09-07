@@ -5,6 +5,8 @@ from .model import ModelWrapper
 from .utils import load_dataset, behaviours
 from statistics import mean
 
+device = "cuda:0"
+
 def test_baseline(model_name: str):
     model = ModelWrapper(model_name)
     
@@ -19,7 +21,7 @@ def test_baseline(model_name: str):
         answers = []
 
         for data in tqdm(test_dataset, leave=False):
-            prompt = model.tokenize_question(data['question'], '(')
+            prompt = model.tokenize_question(data['question'], '(').to(device)
             baseline = model(prompt)
             
             probabilities = t.softmax(baseline.logits[0, -1], -1)

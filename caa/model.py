@@ -11,9 +11,11 @@ class ModelWrapper:
     def __init__(self, model_name, hf_token=os.getenv('HF_TOKEN')):
         self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name, token=hf_token, device_map='auto')
+            model_name, token=hf_token, device_map="cuda:0")
         self.model = AutoModelForCausalLM.from_pretrained(
-            model_name, token=hf_token, device_map='auto')
+            model_name, token=hf_token, device_map="cuda:0")
+        print("Model device", self.model.device)
+        
 
     def setup_layer_activation_hooks(self):
         self.activation_handles = []
@@ -43,6 +45,11 @@ class ModelWrapper:
         if not hasattr(self, 'last_activations'):
             raise ValueError("run setup_layer_activation_hooks() first")
         return self.last_activations.copy()
+    
+    def get_last_layer_activations(self):
+        if not hasattr(self, 'last_activations'):
+            raise ValueError("run setup_layer_activation_hooks() first")
+        return [self.last_activations[f'model.layers.{i}'] for i in range(len(self.model.model.layers))]
 
     def prompt_with_steering(self, input_tokens: t.tensor, steering_dict: Dict[int, t.tensor]):
         hook_handles = []
