@@ -87,3 +87,6 @@ class ModelWrapper:
             return t.tensor(tokens).unsqueeze(0)
         
         raise ValueError(f"Model {self.model_name} not supported")
+
+    def get_model_name(self):
+        return self.model_name.replace('/', '-')
