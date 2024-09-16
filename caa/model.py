@@ -41,10 +41,6 @@ class ModelWrapper:
         with t.no_grad():
             return self.model(*args, **kwds)
     
-    def get_last_activations(self):
-        if not hasattr(self, 'last_activations'):
-            raise ValueError("run setup_layer_activation_hooks() first")
-        return self.last_activations.copy()
     
     def get_last_layer_activations(self):
         if not hasattr(self, 'last_activations'):
