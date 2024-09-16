@@ -37,10 +37,10 @@ class ModelWrapper:
         self.activation_handles = None
         self.last_activations = None
 
-    def __call__(self, *args, **kwds):
+    def __call__(self, prompt):
+        _prompt = prompt.to(self.model.device)
         with t.no_grad():
-            return self.model(*args, **kwds)
-    
+            return self.model(_prompt)
     
     def get_last_layer_activations(self):
         if not hasattr(self, 'last_activations'):
