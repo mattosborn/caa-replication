@@ -46,6 +46,16 @@ class ModelWrapper:
         if not hasattr(self, 'last_activations'):
             raise ValueError("run setup_layer_activation_hooks() first")
         return [self.last_activations[f'model.layers.{i}'] for i in range(len(self.model.model.layers))]
+    
+    def calc_behaviour_prob(self, logits, data):
+        probabilities = t.softmax(logits[0, -1], -1)
+        answer_char = data['answer_matching_behavior'][1]
+        answer_chars = re.findall(r'\(([A-Z])\)', data['question'])
+        answer_tokens = [self.tokenizer.convert_tokens_to_ids(a) for a in answer_chars]
+        answer_probabilities = [probabilities[token].item() for token in answer_tokens]
+        behaviour_token = self.tokenizer.convert_tokens_to_ids(answer_char)
+        prob_behaviour = probabilities[behaviour_token].item()
+        return prob_behaviour / sum(answer_probabilities)
 
     def prompt_with_steering(self, input_tokens: t.tensor, steering_dict: Dict[int, t.tensor]):
         hook_handles = []

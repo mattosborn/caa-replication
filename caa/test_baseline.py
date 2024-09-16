@@ -1,5 +1,3 @@
-import torch as t
-import os
 from tqdm import tqdm
 from .model import ModelWrapper
 from .utils import load_dataset, behaviours
@@ -23,13 +21,8 @@ def test_baseline(model_name: str):
         for data in tqdm(test_dataset, leave=False):
             prompt = model.tokenize_question(data['question'], '(').to(device)
             baseline = model(prompt)
-            
-            probabilities = t.softmax(baseline.logits[0, -1], -1)
-            
-            answer_char = data['answer_matching_behavior'][1]
-            behaviour_token = model.tokenizer.convert_tokens_to_ids(answer_char)
-            
-            answers.append(probabilities[behaviour_token].item())
+            prob_behaviour = model.calc_behaviour_prob(baseline.logits, data)
+            answers.append(prob_behaviour)
 
         mean_answers = mean(answers)
         print(f'{behaviour}: {mean_answers:.4f}')
