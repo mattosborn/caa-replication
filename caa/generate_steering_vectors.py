@@ -2,10 +2,7 @@ import torch as t
 import os
 from tqdm import tqdm
 from caa.model import ModelWrapper
-from caa.utils import load_dataset, BatchedDataset ##, behaviours
-
-behaviours = ['myopic', 'refusal', 'survival', 'corrigible', 'coordinate']
-# behaviours = ['sycophancy', 'hallucination']
+from caa.utils import load_dataset, BatchedDataset, behaviours
 
 def generate_steering_vectors(model_name: str):
     model = ModelWrapper(model_name)
