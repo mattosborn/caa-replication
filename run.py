@@ -3,8 +3,7 @@
 import argparse
 from caa.generate_steering_vectors import generate_steering_vectors
 from caa.test_steering_vectors import test_steering_vectors
-from caa.test_baseline import test_baseline
-from caa.run_sweeps import run_sweeps
+from caa.run_analysis import run_analysis
 
 DEFAULT_MODEL = 'meta-llama/Llama-2-7b-chat-hf'
 
@@ -16,8 +15,7 @@ def main():
     
     generate_parser = subparsers.add_parser('generate', help='Generate steering vectors')
     steering_parser = subparsers.add_parser('steering', help='Test steering vectors')
-    steering_parser = subparsers.add_parser('sweeps', help='Run layer sweeps')
-    baseline_parser = subparsers.add_parser('baseline', help='Test baseline')
+    subparsers.add_parser('analysis', help='Run steering analysis')
 
     args = parser.parse_args()
     
@@ -27,10 +25,8 @@ def main():
         generate_steering_vectors(args.model)
     elif args.command == 'steering':
         test_steering_vectors(args.model)
-    elif args.command == 'sweeps':
-        run_sweeps(args.model)
-    elif args.command == 'baseline':
-        test_baseline(args.model)
+    elif args.command == 'analysis':
+        run_analysis(args.model)
     else:
         print('Invalid command. Please try again.')
         parser.print_help()

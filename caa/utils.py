@@ -1,6 +1,7 @@
 import json
-from typing import Dict, TypedDict, TypeVar, List, Generic
+from typing import Dict, TypedDict, TypeVar, List, Generic, Any
 import torch as t
+import os
 
 
 # behaviours = ['coordinate', 'corrigible', 'hallucination',
@@ -48,3 +49,27 @@ def load_dataset(name) -> List[QuestionData]:
     dataset_file = open(dataset_file_name, 'r')
     dataset = json.load(dataset_file)
     return dataset
+
+TestConfig = TypedDict('TestConfig', {'behaviour': str, 'multiplier': float, 'layer': int, 'model': str})
+
+Results = List[Dict[str, Any]]
+
+def get_model_filename(model_name: str) -> str:
+    model_shorthand_dict = {
+        'meta-llama/Llama-2-7b-chat-hf': '7b-chat-hf',
+    }
+    return model_shorthand_dict.get(model_name, model_name)
+
+def get_result_filename(config: TestConfig) -> str:
+    model_name = get_model_filename(config['model'])
+    return f'results/raw/{model_name}_{config["behaviour"]}_{config["layer"]}_{config["multiplier"]}.json'
+
+def write_results(config: TestConfig, results: Results):
+    filename = get_result_filename(config)
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(get_result_filename(config), 'w') as f:
+        json.dump(results, f, indent=2)
+
+def read_results(config: TestConfig) -> Results:
+    with open(get_result_filename(config), 'r') as f:
+        return json.load(f)
