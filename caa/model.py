@@ -65,6 +65,14 @@ class ModelWrapper:
         prob_behaviour = probabilities[behaviour_token].item()
         return prob_behaviour / sum(answer_probabilities)
     
+    def calc_answer_probabilities(self, logits: t.Tensor, data: QuestionData):
+        probabilities = t.softmax(logits, -1)
+        answer_char = data['answer_matching_behavior'][1]
+        answer_chars: List[str] = re.findall(r'\(([A-Z])\)', data['question'])
+        answer_tokens = [self.tokenizer.convert_tokens_to_ids(a) for a in answer_chars]
+        answer_probabilities = [probabilities[token].item() for token in answer_tokens]
+        return {f"({char})": prob for char, prob in zip(answer_chars, answer_probabilities)}
+    
     def create_prompt_str(self, question, answer=None):
         if re.search(r"Llama-2.*\bchat\b", self.model_name):
             # tokenize for llama-2 chat models
@@ -78,14 +86,13 @@ class ModelWrapper:
         prompt_strs = [self.create_prompt_str(d['question'], '(') for d in data]
         lengths: List[int] = self.tokenizer(prompt_strs, return_length=True)['length'] # type: ignore
         input_tokens = self.tokenizer(prompt_strs, padding='longest', return_tensors='pt')['input_ids']
-        
         # register steering hooks
         hook_handles = []
-        for layer, steering in steering_dict.items():
+        for layer, steering_vector in steering_dict.items():
             def hook(m, i, output):
                 for i, length in enumerate(lengths):
-                    output[0][i, length - 1, :] += steering.to(output[0].device)
-                return output
+                    output[0][i, length - 2 :, :] += steering_vector.to(output[0].device)
+                # return output
                 
             handle = self.model.model.layers[layer].register_forward_hook(hook)
             hook_handles.append(handle)
@@ -96,12 +103,13 @@ class ModelWrapper:
         for handle in hook_handles:
             handle.remove()
         
-        ModelOutputWithProbabilities = TypedDict('ModelOutputWithProbabilities', {'probabilities': List[float], 'logits': List[t.Tensor]})
+        answer_probabilities = [self.calc_answer_probabilities(output.logits[i, lengths[i] - 1], d) for i, d in enumerate(data)]
+        ModelOutputWithProbabilities = TypedDict('ModelOutputWithProbabilities', {'answer_probabilities': List[Dict[str,float]],'probabilities': List[float], 'logits': List[t.Tensor], 'last_token_logits': List[t.Tensor]})
         prompt_result: ModelOutputWithProbabilities = {
-            'probabilities': [
-                self.calc_behaviour_prob(output.logits[i, lengths[i] - 1], d) for i, d in enumerate(data)
-            ],
-            'logits': [output.logits[i] for i in range(len(data))]
+            'answer_probabilities': answer_probabilities,
+            'probabilities': [self.calc_behaviour_prob(output.logits[i, lengths[i] - 1], d) for i, d in enumerate(data)],
+            'logits': [output.logits[i] for i in range(len(data))],
+            'last_token_logits': [output.logits[i, lengths[i] - 1] for i in range(len(data))]
         }
         
         return prompt_result
